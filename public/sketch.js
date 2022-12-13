@@ -1,113 +1,56 @@
 let categoriesLoaded = false;
 let autoSelected = 0;
-let documentsUsed = 0;
-let categoriesUsed = 0;
+let numDocumentsUsed = 0;
+let numCategoriesUsed = 0;
+let categoriesUsed = {};
 
 let minCategory;
 let categories = [];
 let numCategories;
 
+let isInit = true;
+
 const config = {
-	categoriesUsed: 10,
-	documentsUsed: 10,
+	numCategoriesUsed: 10,
+	numDocumentsUsed: 10,
 };
 
 // UI
 let labelCategoriesUsed;
 let inputAutoSelected;
 let inputDocumentsUsed;
+let btnLoad;
+let btnSubmit;
 
 function setup() {
 	noCanvas();
 
+	getUIElemnents();
 	initUI();
 
-	const btnLoad = document.getElementById('load');
-	btnLoad.addEventListener('click', async (event) => {
-		isInit = false;
-
-		if (categoriesLoaded) {
-			removeElements();
-			initUI();
-			categoriesLoaded = false;
-		}
-
-		let response = await fetch('/load');
-		let jsonData = await response.json();
-
-		console.log(jsonData);
-
-		numCategories = jsonData.numCategories;
-
-		const counts = jsonData.counts;
-		const categories = jsonData.categories;
-		const examples = jsonData.examples;
-
-		let minCount = Number.MAX_VALUE;
-		{ // Find category with min number of documents
-			for (let category of categories) {
-				if (minCount > counts[category]) {
-					minCount = counts[category];
-				}
-			}
-			minCategory = minCount;
-		}
-
-		{ // Create toggles for each category
-			createDiv('Categories: ');
-			for (let category of categories) {
-				let enabled = false;
-				if (categoriesUsed < autoSelected) {
-					enabled = true;
-					categoriesUsed += 1;
-				}
-				
-				let toggle = createCheckbox(category.toLowerCase(), enabled);
-				toggle.changed(() => {
-					let setActive = toggle.checked();
-
-					if (setActive) {
-						categoriesUsed += 1;
-						labelCategoriesUsed.textContent = categoriesUsed;
-					}
-					else if (!setActive){
-						categoriesUsed -= 1;
-						labelCategoriesUsed.textContent = categoriesUsed;
-					}
-				});
-			}
-		}
-
-		createP();
-
-		{ // Examples Links:
-			createDiv('Example Links: ');
-			for (let category of categories) {
-				createA(examples[category], category.toLowerCase());
-				createDiv();
-			}
-		}
-
-		categoriesLoaded = true;
-	});
+	btnLoad.addEventListener('click', loadCategoriesAsync);
+	btnSubmit.addEventListener('click', submitCategoriesUsedAsync);
 }
 
-let isInit = true;
-function initUI() {
+function getUIElemnents() {
 	labelCategoriesUsed = document.getElementById('labelCategoriesUsed');
 	inputAutoSelected = document.getElementById('autoSelected');
 	inputDocumentsUsed = document.getElementById('documentsUsed');
+	btnLoad = document.getElementById('load');
+	btnSubmit = document.getElementById('submit');
+}
 
-	categoriesUsed = 0;
-	documentsUsed = config.documentsUsed;
-
+function initUI() {
+	numCategoriesUsed = 0;
+	numDocumentsUsed = config.numDocumentsUsed;
 	if (isInit) {
-		autoSelected = config.categoriesUsed;
+		autoSelected = config.numCategoriesUsed;
 	}
+
 	inputAutoSelected.value = autoSelected;
 	inputAutoSelected.addEventListener('change', (event)=> {
 		if (isInit) {
-			inputAutoSelected.value = config.categoriesUsed;
+			inputAutoSelected.value = config.numCategoriesUsed;
 			return;
 		}
 
@@ -119,10 +62,10 @@ function initUI() {
 
 	labelCategoriesUsed.textContent = autoSelected;
 
-	inputDocumentsUsed.value = documentsUsed;
+	inputDocumentsUsed.value = numDocumentsUsed;
 	inputDocumentsUsed.addEventListener('change', (event)=> {
 		if (isInit) {
-			inputDocumentsUsed.value = config.documentsUsed;
+			inputDocumentsUsed.value = config.numDocumentsUsed;
 			return;
 		}
 
@@ -130,6 +73,109 @@ function initUI() {
 			inputAutoSelected.value = minCategory;
 		}
 
-		documentsUsed = event.target.value;
+		numDocumentsUsed = event.target.value;
 	});
+}
+
+async function loadCategoriesAsync(event) {
+	isInit = false;
+
+	if (categoriesLoaded) {
+		removeElements();
+		initUI();
+		categoriesLoaded = false;
+	}
+
+	let response = await fetch('/load');
+	let jsonData = await response.json();
+
+	console.log(jsonData);
+
+	numCategories = jsonData.numCategories;
+	categories = jsonData.categories;
+
+	const counts = jsonData.counts;
+	const examples = jsonData.examples;
+
+	let minCount = Number.MAX_VALUE;
+	{ // Sorted and Get Categoy with min number of documents
+		categories.sort();
+
+		for (let category of categories) {
+			if (minCount > counts[category]) {
+				minCount = counts[category];
+			}
+		}
+		minCategory = minCount;
+	}
+
+	{ // Create toggles for each category
+		createDiv('Categories: ');
+		for (let category of categories) {
+			let enabled = false;
+			if (numCategoriesUsed < autoSelected) {
+				enabled = true;
+				numCategoriesUsed += 1;
+				categoriesUsed[category] = true;
+			}
+			else {
+				categoriesUsed[category] = false;
+			}
+			
+			let toggle = createCheckbox(category.toLowerCase(), enabled);
+			toggle.changed(() => {
+				let setActive = toggle.checked();
+
+				if (setActive) {
+					numCategoriesUsed += 1;
+					labelCategoriesUsed.textContent = numCategoriesUsed;
+					categoriesUsed[category] = true;
+				}
+				else if (!setActive){
+					numCategoriesUsed -= 1;
+					labelCategoriesUsed.textContent = numCategoriesUsed;
+					categoriesUsed[category] = false;
+				}
+			});
+		}
+	}
+
+	createP();
+
+	{ // Examples Links:
+		createDiv('Example Links: ');
+		for (let category of categories) {
+			createA(examples[category], category.toLowerCase());
+			createDiv();
+		}
+	}
+
+	categoriesLoaded = true;
+}
+
+async function submitCategoriesUsedAsync() {
+	let categoriesUsedArray = [];
+	for (let category of categories) {
+		if (categoriesUsed[category]) {
+			categoriesUsedArray.push(category);
+		}
+	}
+
+	let data = {
+		numDocumentsUsed: numDocumentsUsed,
+		numCategoriesUsed: numCategoriesUsed,
+		categoriesUsed: categoriesUsedArray,
+	}
+
+	let options = {						
+		method: 'POST',
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(data),
+	};
+
+	let response = await fetch('/submit', options);
+	let jsonData = await response.json();
+	console.log(jsonData);
 }
