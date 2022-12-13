@@ -63,7 +63,7 @@ app.post('/submit', async (request, response) => {
     }
 
     const current = `assets\\src_${timestamp}\\`;
-    await fs.mkdirSync(current, permission);
+    fs.mkdirSync(current, permission);
 
     const numDocumentsUsed = Number(result.numDocumentsUsed);
     const categoriesUsed = result.categoriesUsed;
@@ -74,8 +74,8 @@ app.post('/submit', async (request, response) => {
         let selector = {category: category},
             options = {link: 1, _id: 0};
 
-        const folder = current + `category-${category.toLowerCase()}\\`;
-        await fs.mkdirSync(folder, permission);
+        const folder = current + `${category.toLowerCase()}\\`;
+        fs.mkdirSync(folder, permission);
 
         database.find(selector).projection(options).exec(async (err, objects) => {
             let shuffled = objects.sort((a, b) => { 0.5 - prng()});
@@ -87,10 +87,9 @@ app.post('/submit', async (request, response) => {
                 const path = folder + `${numSucceed + 1}.txt`;
                 let succeed = await fetchDocumentsAsync(path, link);
 
-                console.warn(`succeed?: ${succeed}, ${numDocumentsUsed - numSucceed - 1} left`);
                 if (succeed) {
                     numSucceed += 1;
-
+                    console.warn(`succeed, ${numDocumentsUsed - numSucceed} left`);
                     if (numSucceed == numDocumentsUsed) 
                         break;
                 }
@@ -154,13 +153,14 @@ async function fetchDocumentsAsync(path, link) {
                 console.error('[File Writing Error] somthing wrong with your folders...');
             }
         });
-
-        await browser.close();
     }
     catch(error) {
         console.error('[Web Load Error] trying another one...');
+
+        await browser.close();
         return false;
     }
-
+    
+    await browser.close();
     return true;
 }
