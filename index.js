@@ -56,8 +56,14 @@ app.post('/submit', async (request, response) => {
     const permission = 0744;
     var prng = seedrandom(timestamp);
 
-    const root = `assets\\src_${timestamp}\\`;
-    await fs.mkdirSync(root, permission);
+    const root = 'assets\\';
+
+    if (!fs.existsSync(root)) {
+        fs.mkdirSync(root, permission);
+    }
+
+    const current = `assets\\src_${timestamp}\\`;
+    await fs.mkdirSync(current, permission);
 
     const numDocumentsUsed = Number(result.numDocumentsUsed);
     const categoriesUsed = result.categoriesUsed;
@@ -68,7 +74,7 @@ app.post('/submit', async (request, response) => {
         let selector = {category: category},
             options = {link: 1, _id: 0};
 
-        const folder = root + `category-${category.toLowerCase()}\\`;
+        const folder = current + `category-${category.toLowerCase()}\\`;
         await fs.mkdirSync(folder, permission);
 
         database.find(selector).projection(options).exec(async (err, objects) => {
@@ -145,16 +151,14 @@ async function fetchDocumentsAsync(path, link) {
 
         fs.writeFile(path, content, err => {
             if (err) {
-                // console.error(err);
+                console.error('[File Writing Error] somthing wrong with your folders...');
             }
         });
 
         await browser.close();
     }
     catch(error) {
-        
-        // console.error(error);
-
+        console.error('[Web Load Error] trying another one...');
         return false;
     }
 
