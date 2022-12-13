@@ -5,7 +5,7 @@ const fs = require("fs");
 const readline = require('readline');
 const fetch = require('node-fetch');
 const puppeteer = require('puppeteer');
-const path = require('path');
+const seedrandom = require('seedrandom');
 
 // Init express app
 const app = express();
@@ -54,13 +54,14 @@ app.post('/submit', async (request, response) => {
 
     let timestamp = Date.now();
     const permission = 0744;
+    var prng = seedrandom(timestamp);
 
     const root = `assets\\src_${timestamp}\\`;
-    fs.mkdirSync(root, permission);
+    await fs.mkdirSync(root, permission);
 
     const numDocumentsUsed = Number(result.numDocumentsUsed);
     const categoriesUsed = result.categoriesUsed;
-    
+
     for (let category of categoriesUsed) {
         console.log(category);
 
@@ -68,10 +69,10 @@ app.post('/submit', async (request, response) => {
             options = {link: 1, _id: 0};
 
         const folder = root + `category-${category.toLowerCase()}\\`;
-        fs.mkdirSync(folder, permission);
+        await fs.mkdirSync(folder, permission);
 
         database.find(selector).projection(options).exec(async (err, objects) => {
-            let shuffled = objects.sort((a, b) => { 0.5 - Math.random()});
+            let shuffled = objects.sort((a, b) => { 0.5 - prng()});
             
             let numSucceed = 0;
             for (let i = 0; i < shuffled.length; i++) {
