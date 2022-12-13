@@ -21,4 +21,5 @@ Preprocessing the "News Category Dataset" customizably
   - folder
     - ![image-20221213180517001](A:\code\bigData\DatasetPreprocessor\README.assets\image-20221213180517001.png)
   - files
-    - 
+    - <img src="A:\code\bigData\DatasetPreprocessor\README.assets\image-20221213181636871.png" alt="image-20221213181636871" style="zoom:50%;" />
+
