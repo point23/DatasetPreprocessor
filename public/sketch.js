@@ -6,6 +6,8 @@ let categoriesUsed = {};
 
 let minCategory;
 let categories = [];
+let counts;
+let examples;
 let numCategories;
 
 let isInit = true;
@@ -93,9 +95,8 @@ async function loadCategoriesAsync(event) {
 
 	numCategories = jsonData.numCategories;
 	categories = jsonData.categories;
-
-	const counts = jsonData.counts;
-	const examples = jsonData.examples;
+	counts = jsonData.counts;	
+	examples = jsonData.examples;
 
 	let minCount = Number.MAX_VALUE;
 	{ // Sorted and Get Categoy with min number of documents
@@ -150,6 +151,8 @@ async function loadCategoriesAsync(event) {
 		}
 	}
 
+	renderChart();
+
 	categoriesLoaded = true;
 }
 
@@ -178,4 +181,35 @@ async function submitCategoriesUsedAsync() {
 	let response = await fetch('/submit', options);
 	let jsonData = await response.json();
 	console.log(jsonData);
+}
+
+function renderChart() {
+	let labels = categories;
+	let data = [];
+	for (let category of categories) {
+		data.push(counts[category]);
+	}
+
+	const ctx = document.getElementById('chart');
+	new Chart(ctx, {
+			type: 'line',
+			data: {
+			labels: labels,
+			datasets: [{
+				label: 'News Categories Distribution',
+				data: data,
+				backgroundColor: 'rgba(255, 99, 132, 0.2)',
+				borderColor: 'rgba(255, 99, 132, 1)',
+				borderWidth: 1,
+				fill: true,
+			}]
+		},
+		options: {
+			scales: {
+				y: {
+					beginAtZero: false,
+				}
+			}
+		}
+	});
 }
